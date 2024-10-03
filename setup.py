@@ -423,6 +423,24 @@ elif os.path.exists('mercurial/__version__.py'):
     with open('mercurial/__version__.py') as f:
         data = f.read()
     version = re.search('version = b"(.*)"', data).group(1)
+elif os.path.isdir('.git'):
+    # git repository (then we assume than git is installed)
+    returncode, out, err = runcmd(["git", "describe", "--tags"], None)
+    if returncode:
+        # hg-git can create git repo without tag
+        returncode, out, err = runcmd(
+            ["git", "rev-parse", "--short", "HEAD"], None
+        )
+        version = f"0+git{sysstr(out).strip()}"
+    else:
+        out = sysstr(out).strip()
+        if "-" not in out:
+            # probably a tag commit
+            version = out
+        else:
+            tag, distance, node = out.rsplit("-", 2)
+            version = f"{tag}.dev{distance}+git{node[1:]}"
+
 if not version:
     if os.environ.get("MERCURIAL_SETUP_MAKE_LOCAL") == "1":
         version = "0.0+0"
